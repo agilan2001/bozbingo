@@ -6,10 +6,10 @@
     <title>Welcome to Firebase Hosting</title>
 
     <!-- update the version number as needed -->
-    <script defer src="/__/firebase/8.4.1/firebase-app.js"></script>
+    <script src="/__/firebase/8.4.1/firebase-app.js"></script>
     <!-- include only the Firebase features as you need -->
     <!-- <script defer src="/__/firebase/8.4.1/firebase-auth.js"></script> -->
-    <script defer src="/__/firebase/8.4.1/firebase-database.js"></script>
+    <script src="/__/firebase/8.4.1/firebase-database.js"></script>
     <!-- <script defer src="/__/firebase/8.4.1/firebase-firestore.js"></script>
     <script defer src="/__/firebase/8.4.1/firebase-functions.js"></script>
     <script defer src="/__/firebase/8.4.1/firebase-messaging.js"></script>
@@ -21,10 +21,47 @@
       initialize the SDK after all desired features are loaded, set useEmulator to false
       to avoid connecting the SDK to running emulators.
     -->
-    <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+    <script src="/__/firebase/init.js?useEmulator=false"></script>
   </head>
   <body>
     <h1>BOZBINGO</h1>
-    <h2>Online Multiplayer Bingo Game </h2>    
+    <h2>Online Multiplayer Bingo Game </h2>
+    <button onclick="create_room_click()">Create Room</button><span id = "room_create_span"></span><br>
+    <button onclick="join_room_click()">Join Room</button><input type="text" id="room_join_txt"><br>
+    <button>Blind Room</button><br>
+    <div>
+      <table>
+        <tr>
+          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td>
+        </tr>
+        <tr>
+          <td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+        </tr>
+        <tr>
+          <td>11</td><td>12</td><td>13</td><td>14</td><td>15</td>
+        </tr>
+        <tr>
+          <td>16</td><td>17</td><td>18</td><td>19</td><td>20</td>
+        </tr>
+        <tr>
+          <td>21</td><td>22</td><td>23</td><td>24</td><td>25</td>
+        </tr>
+      </table>
+    </div>
+    <script>
+      var db = firebase.database();
+      var name = prompt("Name");
+      function create_room_click(){
+        var new_key = db.ref("rooms").push().key;
+        db.ref("rooms/"+new_key).push({name:name,val:0});
+        room_create_span.innerHTML = new_key;
+      }
+
+      function join_room_click(){
+        var room_key = room_join_txt.value;
+        db.ref("rooms/"+room_key).push({name:name,val:0});
+      }
+    </script>
+
   </body>
 </html>
