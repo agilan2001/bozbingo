@@ -22,6 +22,38 @@
       to avoid connecting the SDK to running emulators.
     -->
     <script src="/__/firebase/init.js?useEmulator=false"></script>
+    <style>
+      #bingo_table td{
+        border: 1px solid; 
+        text-align: center;
+      }
+      .cell-strike{
+        background-color: yellow;
+      }
+
+      .cell-match{
+        background-color: limegreen;
+      }
+
+      #player_names_div div{
+        width: max-content;
+      }
+
+      .player-current{
+        color:blue;
+        font-weight: bold;
+      }
+
+      .player-bingo{
+        color:blue;
+        background-color: greenyellow;
+        font-weight: bold;
+      }
+
+      .bingo-sc-strike{
+        background-color: cyan;
+      }
+    </style>
   </head>
   <body>
     <h1>BOZBINGO</h1>
@@ -30,37 +62,249 @@
     <button onclick="join_room_click()">Join Room</button><input type="text" id="room_join_txt"><br>
     <button>Blind Room</button><br>
     <div>
-      <table>
+      <table id = "bingo_table">
         <tr>
-          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td>
+          <td id="a00"> 1</td><td id="a01"> 2</td><td id="a02"> 3</td><td id="a03"> 4</td><td id="a04"> 5</td><td id="bingo_sc1">B</td>
         </tr>
         <tr>
-          <td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+          <td id="a10"> 6</td><td id="a11"> 7</td><td id="a12"> 8</td><td id="a13"> 9</td><td id="a14">10</td><td id="bingo_sc2">I</td>
         </tr>
         <tr>
-          <td>11</td><td>12</td><td>13</td><td>14</td><td>15</td>
+          <td id="a20">11</td><td id="a21">12</td><td id="a22">13</td><td id="a23">14</td><td id="a24">15</td><td id="bingo_sc3">N</td>
         </tr>
         <tr>
-          <td>16</td><td>17</td><td>18</td><td>19</td><td>20</td>
+          <td id="a30">16</td><td id="a31">17</td><td id="a32">18</td><td id="a33">19</td><td id="a34">20</td><td id="bingo_sc4">G</td>
         </tr>
         <tr>
-          <td>21</td><td>22</td><td>23</td><td>24</td><td>25</td>
+          <td id="a40">21</td><td id="a41">22</td><td id="a42">23</td><td id="a43">24</td><td id="a44">25</td><td id="bingo_sc5">O</td>
         </tr>
       </table>
+    </div>
+    <div>
+      <button id="start_btn" disabled onclick="start()">START</button>
+      <button id="bingo_btn" disabled onclick="bingo_btn_click()">BINGO</button>
+    </div>
+    <div id = "player_names_div">
+
     </div>
     <script>
       var db = firebase.database();
       var name = prompt("Name");
-      function create_room_click(){
-        var new_key = db.ref("rooms").push().key;
-        db.ref("rooms/"+new_key).push({name:name,val:0});
-        room_create_span.innerHTML = new_key;
+      var room_key;// = "-MZ1DdIiIBmOhVid9c-C";
+      var cnt; // total players in the room [1 index]
+      var cur; // code number of the current player [0 index]
+      var my_cur; // code number of this player  [0 index]
+      var pos_val = []; // position of value [0 index]
+      var val_pos = []; // value of position [0 index]
+      var struck_val = [];
+      var struck_pos = [];
+      var player_names = [];
+      var bingo_score;
+
+      shuffle_pos();
+
+      async function create_room_click(){
+        room_key = parseInt(Date.now()/100).toString(36).toUpperCase();
+        my_cur=0;
+        cur=-1;
+        await db.ref("rooms").update({
+          [room_key+"/0"]:{name:name,val:-1},
+          [room_key+"/cnt"]:1,
+          [room_key+"/cur"]:-1
+        });
+        db.ref(`rooms/${room_key}`).on("value",bingo_play);
+        room_create_span.innerHTML = room_key;
+        start_btn.disabled = false;
       }
 
-      function join_room_click(){
-        var room_key = room_join_txt.value;
-        db.ref("rooms/"+room_key).push({name:name,val:0});
+      async function join_room_click(){
+        room_key = room_join_txt.value;
+        var t = (await db.ref("rooms/"+room_key+"/cur").once("value")).val();
+        if(t!=-1){
+          console.log("room_closed");
+          return;
+        }
+
+        my_cur = (await db.ref("rooms/"+room_key+"/cnt").once("value")).val();
+        if(my_cur>4){
+          console.log("room_full");
+          return;
+        }
+        db.ref("rooms/"+room_key).update({
+            [my_cur]:{name:name,val:-1},
+            cnt:my_cur+1
+        });
+        db.ref(`rooms/${room_key}`).on("value",bingo_play);
       }
+
+
+      function shuffle_pos(){
+        val_pos = Array.from(Array(25).keys()); // [0,2,3...24]
+        val_pos.sort(()=>Math.random()-0.5);
+        val_pos.forEach((e,i)=>{
+          pos_val[e] = i;
+          var el = document.getElementById("a"+parseInt(i/5)+(i%5))
+          el.innerHTML=(e+1);
+          el.addEventListener("click",()=>bingo_click(e));
+          struck_val[i]=0;
+          struck_pos[i]=0;
+        })
+        bingo_score = 0;
+        
+
+      }
+
+      async function bingo_play(snap){
+
+        var data = snap.val();
+        if(data.cur==-1){
+          cnt=data.cnt;
+          player_names_div.innerHTML = "";
+          var inn_str = "";
+          for(k=0; k<cnt;k++){
+            player_names[k] = data[k].name;
+            inn_str += `<div id="name${k}">${player_names[k]}</div>`;
+          }
+          player_names_div.innerHTML = inn_str;
+
+        }else if(data.cur<5){
+          cur = data.cur;
+
+          for(j=0;j<cnt;j++){
+            if(j==cur)
+              document.getElementById("name"+j).classList.add("player-current");
+            else  
+              document.getElementById("name"+j).classList.remove("player-current");
+          }
+
+          var str_val = data[(cur-1+cnt)%cnt].val;
+          if(str_val!=-1){
+            struck_val[str_val]=1;
+            struck_pos[pos_val[str_val]]=1;
+            bingo_update(pos_val[str_val]);
+          }
+        }else{
+          cur = data.cur;
+          for(j=0;j<cnt;j++){
+            document.getElementById("name"+j).classList.remove("player-current");
+          }
+          console.log(player_names[cur-100] + " says BINGO" );
+          document.getElementById("name"+(cur-100)).classList.add("player-bingo");
+        }
+
+
+
+      }
+
+      function bingo_click(val){
+        if(my_cur == cur){
+          db.ref(`rooms/${room_key}`).update({
+            [`${my_cur}/val`]:val,
+            cur:(cur+1)%cnt
+          })
+        }
+      }
+
+      function start(){
+        db.ref(`rooms/${room_key}`).update({
+            cur:0
+          })
+      }
+
+      function bingo_update(e){
+        document.getElementById("a"+parseInt(e/5)+(e%5)).classList.add("cell-strike");
+        var i = parseInt(e/5);
+        var j = e%5;
+
+        // row check;
+        var row_fill = true;
+        for(k = 0;k<5;k++){
+          if(struck_pos[i*5+k] == 0){
+            row_fill = false;
+            break;
+          } 
+        }
+
+        if(row_fill == true){
+          bingo_score_inc();
+          for(p=0;p<5;p++){
+            document.getElementById("a"+i+p).classList.remove('cell-strike');
+            document.getElementById("a"+i+p).classList.add('cell-match');
+          }
+        }
+        
+        // column check
+        var col_fill = true;
+        for(k = 0;k<5;k++){
+          if(struck_pos[k*5+j] == 0){
+            col_fill = false;
+            break;
+          } 
+        }
+
+        if(col_fill == true){
+          bingo_score_inc();
+          for(p=0;p<5;p++){
+            document.getElementById("a"+p+j).classList.remove('cell-strike');
+            document.getElementById("a"+p+j).classList.add('cell-match');
+          }
+        }
+
+        // lead diagonal check;
+        if(i==j){
+          var lead_diag_fill = true;
+          for(k = 0;k<5;k++){
+            if(struck_pos[k*5+k] == 0){
+              lead_diag_fill = false;
+              break;
+            } 
+          }
+
+          if(lead_diag_fill == true){
+            bingo_score_inc();
+            for(p=0;p<5;p++){
+              document.getElementById("a"+p+p).classList.remove('cell-strike');
+              document.getElementById("a"+p+p).classList.add('cell-match');
+            }
+          }
+        }
+
+        // lag diagonal check;
+        if(i+j==4){
+          var lag_diag_fill = true;
+          for(k = 0;k<5;k++){
+            if(struck_pos[k*4+4] == 0){
+              lead_diag_fill = false;
+              break;
+            } 
+          }
+
+          if(lead_diag_fill == true){
+            bingo_score_inc();
+            for(p=0;p<5;p++){
+              document.getElementById("a"+p+(4-p)).classList.remove('cell-strike');
+              document.getElementById("a"+p+(4-p)).classList.add('cell-match');
+            }
+          }
+        }
+
+      }
+
+      function bingo_score_inc(){
+        bingo_score++;
+        document.getElementById("bingo_sc"+bingo_score).classList.add('bingo-sc-strike');
+
+        if(bingo_score==5){
+          bingo_btn.disabled=false;
+        }
+      }
+
+      function bingo_btn_click(){
+        if(cur<5){
+          db.ref(`rooms/${room_key}/cur`).set(100+my_cur);
+        }
+      }
+
     </script>
 
   </body>
