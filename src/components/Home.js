@@ -1,13 +1,16 @@
 import React from "react"
-import { Button, Tab, Tabs, Box, Stack, Paper, TextField, CircularProgress} from "@mui/material"
-import { useNavigate } from "react-router-dom"
+import { Button, Tab, Tabs, Box, Stack, Paper, TextField, CircularProgress, IconButton, Divider} from "@mui/material"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 import {set, ref, onValue, get, off } from "firebase/database"
 import { db_context } from "../App"
+import ShareIcon from '@mui/icons-material/Share';
 
 
 export const HomeMain = ()=>{
-    const [curTab, setCurTab] = React.useState(0)
+    
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [curTab, setCurTab] = React.useState(searchParams.get('joinRoomId')?1:0);
     
     return(
         <Box maxWidth={600} m={'auto'}>
@@ -19,7 +22,7 @@ export const HomeMain = ()=>{
                 curTab==0 && <CreateRoomBox/>
             }
             {
-                curTab==1 && <JoinRoomBox/>
+                curTab==1 && <JoinRoomBox roomId={searchParams.get('joinRoomId')}/>
             }
 
         </Box>
@@ -53,6 +56,14 @@ const CreateRoomBox = ()=>{
             }
         })
     }
+
+    const shareClick = ()=>{
+        navigator.share({
+            title:'BOZ-BINGO Invite',
+            text:`Let's play BOZ-BINGO`,
+            url: `https://bozbingo.web.app/?joinRoomId=${roomId}`
+        })
+    }
     
 
     return (
@@ -60,14 +71,22 @@ const CreateRoomBox = ()=>{
             <Stack alignItems={'center'} spacing={2}>
                 <TextField id="name_0_txt" label = "Your Name" variant="standard" />
                 <Button onClick={getRoom}>Get Room</Button>
-                <Paper sx={{padding:1, alignItems:'center', fontWeight:'bold'}}>{roomId}</Paper>
-                {wait && <div><CircularProgress/> Waiting for opponent</div>}
+                <Stack direction={'row'}>
+                    <Paper variant="outlined" sx={{padding:1, alignItems:'center', fontWeight:'bold'}}>{roomId}
+                    {roomId!="....." && <IconButton onClick={shareClick}><ShareIcon/></IconButton>}
+                    </Paper>
+                    
+                </Stack>
+                
+                {wait && 
+                    <Stack alignItems={'center'}><CircularProgress/> Waiting for opponent</Stack>
+                }
             </Stack>
         </div>
     )
 }
 
-const JoinRoomBox = ()=>{
+const JoinRoomBox = ({roomId})=>{
 
     const db = React.useContext(db_context);
 
@@ -93,7 +112,7 @@ const JoinRoomBox = ()=>{
         <div>
             <Stack alignItems={'center'} spacing={2}>
                 <TextField id="name_1_txt" label = "Your Name" variant="standard" />
-                <TextField id="room_id_text" error={roomError} label = "Room ID" variant="standard" helperText={roomError?"Invalid Room ID":""} />
+                <TextField value={roomId} id="room_id_text" error={roomError} label = "Room ID" variant="standard" helperText={roomError?"Invalid Room ID":""} />
                 <Button onClick={joinRoom}>Join</Button>
             </Stack>
         </div>
