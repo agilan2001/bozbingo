@@ -40,7 +40,7 @@ export default () => {
         get(ref(db, `rooms/${roomId}`)).then(snap => {
             var p_details = snap.val();
             if (JSON.parse(p_details["strikes"]).length) {
-                navigate('/');
+                navigate('../');
                 return;
             }
 
