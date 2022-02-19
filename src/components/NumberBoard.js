@@ -1,10 +1,11 @@
 import React from 'react';
-import { Button, Grid, Paper, Stack } from '@mui/material'
+import { Button, Grid, Paper, Stack, Box } from '@mui/material'
 import NumberButton from './NumberButton';
 import { useSearchParams } from 'react-router-dom';
 
 import { db_context } from '../App';
 import { set, ref, get, onValue, off } from 'firebase/database';
+import Header from './Header';
 
 
 export default () => {
@@ -139,37 +140,49 @@ export default () => {
     }
 
     return (
-        <Stack spacing={3} sx={{ maxWidth: '500px', margin: 'auto' }}>
-            <Stack direction={'row'} spacing={3}>
-                <Grid container justifyContent="center" alignItems="center" spacing={1}>
-                    {
-                        [0, 1, 2, 3, 4].map((e, i) => (
-                            <Grid key={i} container item justifyContent="space-between" alignItems="center" spacing={1}>
-                                {
-                                    boardValues.slice(i * 5, (i + 1) * 5).map((ei, ii) => (
-                                        <Grid key={i * 5 + ii} item xs={2}>
-                                            <NumberButton value={ei} strikeValue={strikeValues[i * 5 + ii]} onClick={numberButtonClickHandler(i * 5 + ii)} />
-                                        </Grid>
-                                    ))
-                                }
-                            </Grid>
-                        ))
-                    }
-                </Grid>
+        <Box>
+            <Header />
+            <Stack spacing={3} sx={{ maxWidth: '400px', margin: 'auto', p:2 }}>
+                {/* <Stack direction={'row'} spacing={3}> */}
+                    <Grid spacing={2} container justifyContent="center" alignItems="center">
+                        {
+                            [0, 1, 2, 3, 4].map((e, i) => (
+                                <Grid spacing={2} width={'max-content'} key={i} container item justifyContent="center" alignItems="center" xs={12}>
+                                    {
+                                        boardValues.slice(i * 5, (i + 1) * 5).map((ei, ii) => (
+                                            <Grid key={i * 5 + ii} item xs={2}>
+                                                <NumberButton value={ei} strikeValue={strikeValues[i * 5 + ii]} onClick={numberButtonClickHandler(i * 5 + ii)} />
+                                            </Grid>
+                                        ))
+                                    }
+                                    <Grid item xs={2}>
+                                        <Button key={100+i}  sx={{height:'3em', width:'3em', minWidth:0}} variant='contained' color={i >= getScore() ? 'secondary' : 'warning'}>{"BINGO".charAt(i)}</Button>
+                                    </Grid> 
+                                </Grid>
+                            ))
+                            
+                        }
+                        
+                    </Grid>
 
-                <Stack spacing={1}>
-                    {[0,1,2,3,4].map((e,i)=>(
-                        <Button key={100+i}  sx={{minWidth:0}} variant='contained' color={i >= getScore() ? 'secondary' : 'warning'}>{"BINGO".charAt(i)}</Button>
-                    ))                          
-                    }
+                    {/* <Stack spacing={1}>
+                        {[0,1,2,3,4].map((e,i)=>(
+                            <Button key={100+i}  sx={{height:'3em', width:'3em', minWidth:0}} variant='contained' color={i >= getScore() ? 'secondary' : 'warning'}>{"BINGO".charAt(i)}</Button>
+                        ))                          
+                        }
+                    </Stack> */}
+                {/* </Stack> */}
+                <Button variant={'contained'} disabled={getScore()<5 || winner!=-1} onClick={bozClick}>BOZ</Button>
+                <Stack direction={'row'} justifyContent={'space-evenly'}>
+                    <Paper sx={{p:2, border:(winner==-1)?( isMyTurn?4:2):((winner==p)?4:2), 
+                        borderColor:(winner==-1)?( isMyTurn?'blue':'black'):((winner==p)?'green':'black'),
+                        background:(winner!=p)?('white'):('orange')}} >{details.myName}</Paper>
+                    <Paper sx={{p:2, border:(winner==-1)?( isMyTurn?2:4):((winner==p)?2:4), 
+                        borderColor:(winner==-1)?( isMyTurn?'black':'blue'):((winner==p)?'black':'green'),
+                        background:(winner==-1 || winner==p)?('white'):('orange')}} >{details.oppName}</Paper>
                 </Stack>
             </Stack>
-            <Button variant={'contained'} disabled={getScore()<5 || winner!=-1} onClick={bozClick}>BOZ</Button>
-            <Stack direction={'row'} justifyContent={'space-evenly'}>
-                <Paper sx={{p:2, border:(winner==-1)?( isMyTurn?4:2):((winner==p)?4:2), borderColor:(winner==-1)?( isMyTurn?'blue':'black'):((winner==p)?'green':'black')}} variant={'outlined'}>{details.myName}</Paper>
-                <Paper sx={{p:2, border:(winner==-1)?( isMyTurn?2:4):((winner==p)?2:4), borderColor:(winner==-1)?( isMyTurn?'black':'blue'):((winner==p)?'black':'green')}} variant={'outlined'}>{details.oppName}</Paper>
-            </Stack>
-        </Stack>
+        </Box>
 
     )
 }
