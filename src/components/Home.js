@@ -106,7 +106,7 @@ const JoinRoomBox = ({ roomId }) => {
                 setRoomError(true);
             else {
                 setRoomError(false);
-                set(ref(db, `/rooms/${roomId}/1`), (document.getElementById("name_1_txt").value || "Buddy2")).toUpperCase();
+                set(ref(db, `/rooms/${roomId}/1`), (document.getElementById("name_1_txt").value || "Buddy2").toUpperCase());
                 navigate(`game/?p=1&roomId=${roomId}`);
             }
         })
